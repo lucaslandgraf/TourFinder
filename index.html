@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guia de Cupons • Tour Londrina</title>
+	
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Ícones Lucide -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .drag-scroll { cursor: grab; user-select: none; }
+    .drag-scroll:active { cursor: grabbing; }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-800 antialiased min-h-screen pb-20">
+
+  <!-- Hero Header Azul -->
+  <section class="bg-[#0070D2] text-white pt-8 pb-20 px-5 relative">
+    <div class="max-w-xl mx-auto space-y-3">
+      <!-- Tag superior -->
+      <div class="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-blue-200">
+        <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+        <span>Guia de Cupons • Tour Londrina</span>
+      </div>
+
+      <!-- Título de impacto -->
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+        O que está valendo <span class="text-blue-200">hoje</span> para comer na cidade?
+      </h1>
+
+      <p class="text-xs sm:text-sm text-blue-100 font-normal leading-relaxed pt-1">
+        Cupons organizados pelas categorias do Tour Londrina, turnos e distância. Regras sempre visíveis e rota direta no mapa.
+      </p>
+
+      <!-- Botões de Ação Rápida no Hero -->
+      <div class="flex flex-wrap gap-2 pt-3 text-xs font-semibold">
+        <button id="btn-hero-validos" onclick="toggleValidosHoje()" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-[#0070D2] shadow-sm hover:bg-blue-50 transition-all">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span id="label-hero-validos">Válidos hoje</span>
+        </button>
+
+        <button id="btn-hero-proximos" onclick="toggleGeolocalizacao()" class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/40 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all">
+          <i data-lucide="navigation" class="w-4 h-4"></i>
+          <span id="label-hero-proximos">Mais perto de mim</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Caixa de Filtros Flutuante (Card Branco) -->
+  <div class="max-w-xl mx-auto px-4 -mt-12 relative z-20">
+    <div class="bg-white rounded-3xl p-5 shadow-xl shadow-blue-900/5 border border-slate-100 space-y-4">
+      
+      <!-- Campo de Busca -->
+      <div class="relative">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+        <input 
+          type="text" 
+          id="search-input" 
+          placeholder="Buscar prato, restaurante ou endereço..." 
+          class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm focus:outline-none focus:border-[#0070D2] focus:ring-1 focus:ring-[#0070D2] transition-all placeholder:text-slate-400"
+        />
+      </div>
+
+      <!-- Filtro: DIA -->
+      <div class="space-y-1.5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">DIA</span>
+        <div class="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5 drag-scroll" id="dia-chips">
+          <!-- Gerado via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Filtro: TURNO -->
+      <div class="space-y-1.5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">TURNO</span>
+        <div class="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5 drag-scroll">
+          <button onclick="setTurno('todos')" id="turno-todos" class="px-3.5 py-1.5 rounded-full text-xs font-medium border border-slate-200 bg-white text-slate-600 transition-all whitespace-nowrap">
+            Qualquer turno
+          </button>
+          <button onclick="setTurno('almoco')" id="turno-almoco" class="px-3.5 py-1.5 rounded-full text-xs font-medium border border-slate-200 bg-white text-slate-600 transition-all whitespace-nowrap">
+            Almoço
+          </button>
+          <button onclick="setTurno('jantar')" id="turno-jantar" class="px-3.5 py-1.5 rounded-full text-xs font-medium border border-slate-200 bg-white text-slate-600 transition-all whitespace-nowrap">
+            Jantar
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtro: CATEGORIA (Com Navegação por Setas e Scroll Descomplicado) -->
+      <div class="space-y-1.5">
+        <div class="flex justify-between items-center">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">CATEGORIAS DO TOUR</span>
+          <div class="flex gap-1 text-slate-400">
+            <button onclick="scrollCategorias(-200)" class="p-1 hover:text-[#0070D2] hover:bg-slate-100 rounded-lg transition-all" title="Rolar para esquerda">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </button>
+            <button onclick="scrollCategorias(200)" class="p-1 hover:text-[#0070D2] hover:bg-slate-100 rounded-lg transition-all" title="Rolar para direita">
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+        <div class="flex gap-2 overflow-x-auto no-scrollbar py-1 drag-scroll scroll-smooth" id="category-chips">
+          <!-- Gerado via JavaScript -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Contagem de Resultados e Indicador de GPS -->
+  <div class="max-w-xl mx-auto px-5 pt-6 pb-2 flex items-center justify-between text-xs text-slate-500 font-medium">
+    <span id="badge-total" class="font-bold text-slate-800">Carregando cupons...</span>
+    <span id="gps-status" class="hidden text-[11px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100"></span>
+  </div>
+
+  <!-- Feed de Vouchers -->
+  <main class="max-w-xl mx-auto px-4 space-y-4" id="cards-container">
+    <div class="text-center py-16 text-slate-400 text-sm">
+      Carregando lista de cupons...
+    </div>
+  </main>
+
+  <script>
+    const DIAS_MAP = { 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb' };
+    const hojeIndex = new Date().getDay();
+    const hojeSigla = DIAS_MAP[hojeIndex];
+
+    const CATEGORIAS_OFICIAIS = [
+      { id: 'todas', label: 'Todas' },
+      { id: 'catuai', label: 'Shopping Catuaí' },
+      { id: 'contemporaneos', label: 'Contemporâneos' },
+      { id: 'sabores_mundo', label: 'Sabores do Mundo' },
+      { id: 'asiaticos', label: 'Asiáticos' },
+      { id: 'cafes_docerias', label: 'Cafés e Docerias' },
+      { id: 'pizzarias', label: 'Pizzarias' },
+      { id: 'burgers', label: 'Burgers' },
+      { id: 'bares_street_food', label: 'Bares & Street Food' },
+      { id: 'sorveterias', label: 'Sorveterias' }
+    ];
+
+    let vouchers = [];
+    let userLocation = null;
+    let state = {
+      search: '',
+      diaSelecionado: hojeSigla,
+      turno: 'todos',
+      categoria: 'todas',
+      ordenarPorDistancia: false
+    };
+
+    function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+      if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    function classificarCategoriaOficial(item) {
+      const destaque = (item.local_destaque || '').toLowerCase();
+      const cat = (item.categoria || '').toLowerCase();
+
+      if (destaque.includes('catuaí') || destaque.includes('catuai')) return 'catuai';
+      if (cat.includes('contempor')) return 'contemporaneos';
+      if (cat.includes('sabores do mundo')) return 'sabores_mundo';
+      if (cat.includes('asiát') || cat.includes('asiat') || cat.includes('japonesa')) return 'asiaticos';
+      if (cat.includes('café') || cat.includes('cafe') || cat.includes('doceria') || cat.includes('tortas') || cat.includes('chocolat')) return 'cafes_docerias';
+      if (cat.includes('pizz')) return 'pizzarias';
+      if (cat.includes('burger')) return 'burgers';
+      if (cat.includes('bares') || cat.includes('street') || cat.includes('gastrobar') || cat.includes('choperia')) return 'bares_street_food';
+      if (cat.includes('sorvete') || cat.includes('gelat') || cat.includes('açaí') || cat.includes('acai')) return 'sorveterias';
+
+      return 'outros';
+    }
+
+    // Scroll com setas
+    function scrollCategorias(offset) {
+      const el = document.getElementById('category-chips');
+      el.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+
+    // Habilita scroll com a rodinha do mouse e arrasto (drag-to-scroll)
+    function habilitarScrollMouse(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+
+      // 1. Rolar com a rodinha comum do mouse
+      el.addEventListener('wheel', (evt) => {
+        if (evt.deltaY !== 0) {
+          evt.preventDefault();
+          el.scrollLeft += evt.deltaY;
+        }
+      }, { passive: false });
+
+      // 2. Clicar e arrastar com o mouse
+      let isDown = false;
+      let startX;
+      let scrollLeft;
+
+      el.addEventListener('mousedown', (e) => {
+        isDown = true;
+        startX = e.pageX - el.offsetLeft;
+        scrollLeft = el.scrollLeft;
+      });
+
+      el.addEventListener('mouseleave', () => { isDown = false; });
+      el.addEventListener('mouseup', () => { isDown = false; });
+
+      el.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - el.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        el.scrollLeft = scrollLeft - walk;
+      });
+    }
+
+    async function carregarDados() {
+      try {
+        const res = await fetch('./tour_londrina_com_coordenadas.json');
+        vouchers = await res.json();
+        
+        vouchers.forEach(v => {
+          v.categoria_oficial = classificarCategoriaOficial(v);
+        });
+
+        montarDias();
+        montarCategorias();
+        atualizarBotoesTurno();
+
+        habilitarScrollMouse('category-chips');
+        habilitarScrollMouse('dia-chips');
+
+        renderizar();
+      } catch (err) {
+        document.getElementById('cards-container').innerHTML = `
+          <div class="p-6 bg-red-50 text-red-700 rounded-3xl text-xs text-center border border-red-200">
+            Erro ao carregar os dados.<br>Verifique se 'tour_londrina_com_coordenadas.json' está na pasta.
+          </div>
+        `;
+      }
+    }
+
+    function montarDias() {
+      const diasSemana = [
+        { id: 'qualquer', label: 'Qualquer dia' },
+        { id: 'Dom', label: 'Dom' },
+        { id: 'Seg', label: 'Seg' },
+        { id: 'Ter', label: 'Ter' },
+        { id: 'Qua', label: 'Qua' },
+        { id: 'Qui', label: 'Qui' },
+        { id: 'Sex', label: 'Sex' },
+        { id: 'Sáb', label: 'Sáb' }
+      ];
+
+      const container = document.getElementById('dia-chips');
+      container.innerHTML = diasSemana.map(d => {
+        const isHoje = d.id === hojeSigla;
+        const isSelected = state.diaSelecionado === d.id;
+        const label = isHoje ? `${d.label} (hoje)` : d.label;
+
+        const activeClass = "bg-[#0070D2] border-[#0070D2] text-white font-bold shadow-sm shadow-blue-500/20";
+        const inactiveClass = "bg-white border-slate-200 text-slate-600 hover:border-slate-300";
+
+        return `
+          <button 
+            onclick="setDia('${d.id}')"
+            class="px-3.5 py-1.5 rounded-full text-xs transition-all whitespace-nowrap border ${isSelected ? activeClass : inactiveClass}"
+          >
+            ${label}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function setDia(diaId) {
+      state.diaSelecionado = diaId;
+      montarDias();
+      renderizar();
+    }
+
+    function setTurno(turno) {
+      state.turno = turno;
+      atualizarBotoesTurno();
+      renderizar();
+    }
+
+    function atualizarBotoesTurno() {
+      ['todos', 'almoco', 'jantar'].forEach(t => {
+        const btn = document.getElementById(`turno-${t}`);
+        if (!btn) return;
+        if (state.turno === t) {
+          btn.className = "px-3.5 py-1.5 rounded-full text-xs font-bold border border-[#0070D2] bg-[#0070D2] text-white shadow-sm shadow-blue-500/20 transition-all whitespace-nowrap";
+        } else {
+          btn.className = "px-3.5 py-1.5 rounded-full text-xs font-medium border border-slate-200 bg-white text-slate-600 hover:border-slate-300 transition-all whitespace-nowrap";
+        }
+      });
+    }
+
+    function montarCategorias() {
+      const container = document.getElementById('category-chips');
+      container.innerHTML = CATEGORIAS_OFICIAIS.map(cat => {
+        const isSelected = state.categoria === cat.id;
+        const activeClass = "bg-[#0070D2] border-[#0070D2] text-white font-bold shadow-sm shadow-blue-500/20";
+        const inactiveClass = "bg-white border-slate-200 text-slate-600 hover:border-slate-300";
+
+        return `
+          <button 
+            onclick="setCategoria('${cat.id}')"
+            class="px-4 py-2.5 rounded-2xl text-xs sm:text-[13px] font-semibold transition-all whitespace-nowrap border ${isSelected ? activeClass : inactiveClass}"
+          >
+            ${cat.label}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function setCategoria(catId) {
+      state.categoria = catId;
+      montarCategorias();
+      renderizar();
+    }
+
+    function toggleValidosHoje() {
+      state.diaSelecionado = hojeSigla;
+      state.turno = 'todos';
+      state.categoria = 'todas';
+      montarDias();
+      montarCategorias();
+      atualizarBotoesTurno();
+      renderizar();
+    }
+
+    function toggleGeolocalizacao() {
+      if (!navigator.geolocation) {
+        alert("Navegador sem suporte a GPS.");
+        return;
+      }
+
+      const btn = document.getElementById('btn-hero-proximos');
+      const label = document.getElementById('label-hero-proximos');
+      const gpsStatus = document.getElementById('gps-status');
+
+      if (state.ordenarPorDistancia) {
+        state.ordenarPorDistancia = false;
+        btn.className = "flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/40 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all";
+        gpsStatus.classList.add('hidden');
+        renderizar();
+        return;
+      }
+
+      label.innerText = "Obtendo GPS...";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          state.ordenarPorDistancia = true;
+          label.innerText = "Mais perto de mim";
+          btn.className = "flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-[#0070D2] font-bold shadow-md transition-all";
+          
+          gpsStatus.innerText = `GPS ativo (±${Math.round(pos.coords.accuracy)}m)`;
+          gpsStatus.classList.remove('hidden');
+          renderizar();
+        },
+        (err) => {
+          label.innerText = "Mais perto de mim";
+          alert("Não foi possível acessar a localização. Verifique as permissões de GPS.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    function renderizar() {
+      const container = document.getElementById('cards-container');
+
+      let filtrados = vouchers.filter(item => {
+        const busca = state.search.toLowerCase();
+        const bateTexto = !busca ||
+          (item.nome && item.nome.toLowerCase().includes(busca)) ||
+          (item.beneficio && item.beneficio.toLowerCase().includes(busca)) ||
+          (item.endereco && item.endereco.toLowerCase().includes(busca));
+        if (!bateTexto) return false;
+
+        if (state.categoria !== 'todas') {
+          if (item.categoria_oficial !== state.categoria) return false;
+        }
+
+        const almoco = item.dias_validos_almoco || [];
+        const jantar = item.dias_validos_jantar || [];
+
+        if (state.diaSelecionado !== 'qualquer') {
+          const valeDiaAlmoco = almoco.includes(state.diaSelecionado);
+          const valeDiaJantar = jantar.includes(state.diaSelecionado);
+
+          if (state.turno === 'almoco' && !valeDiaAlmoco) return false;
+          if (state.turno === 'jantar' && !valeDiaJantar) return false;
+          if (state.turno === 'todos' && !(valeDiaAlmoco || valeDiaJantar)) return false;
+        } else {
+          if (state.turno === 'almoco' && almoco.length === 0) return false;
+          if (state.turno === 'jantar' && jantar.length === 0) return false;
+        }
+
+        return true;
+      });
+
+      if (userLocation) {
+        filtrados.forEach(item => {
+          if (item.lat && item.lng) {
+            item.distanciaKm = calcularDistanciaKm(userLocation.lat, userLocation.lng, item.lat, item.lng);
+          } else {
+            item.distanciaKm = null;
+          }
+        });
+
+        if (state.ordenarPorDistancia) {
+          filtrados.sort((a, b) => {
+            if (a.distanciaKm === null) return 1;
+            if (b.distanciaKm === null) return -1;
+            return a.distanciaKm - b.distanciaKm;
+          });
+        }
+      }
+
+      document.getElementById('badge-total').innerText = `${filtrados.length} cupons encontrados`;
+
+      if (filtrados.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
+            <i data-lucide="utensils" class="w-10 h-10 mx-auto text-slate-300 mb-3"></i>
+            <h4 class="font-bold text-slate-700">Nenhum cupom encontrado</h4>
+            <p class="text-xs text-slate-400 mt-1">Tente selecionar outro dia, turno ou categoria do Tour.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtrados.map(item => {
+        const almoco = item.dias_validos_almoco || [];
+        const jantar = item.dias_validos_jantar || [];
+        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.endereco || item.nome + ' Londrina')}`;
+        const instaUrl = item.instagram ? `https://instagram.com/${item.instagram.replace('@', '')}` : null;
+
+        const catObj = CATEGORIAS_OFICIAIS.find(c => c.id === item.categoria_oficial);
+        const catNome = catObj ? catObj.label.toUpperCase() : (item.categoria || 'TOUR').toUpperCase();
+
+        const diaAtual = state.diaSelecionado === 'qualquer' ? hojeSigla : state.diaSelecionado;
+        const ativoAgora = almoco.includes(diaAtual) || jantar.includes(diaAtual);
+
+        let turnosTexto = [];
+        if (almoco.length > 0) turnosTexto.push("Almoço");
+        if (jantar.length > 0) turnosTexto.push("Jantar");
+
+        let badgeDistancia = '';
+        if (item.distanciaKm !== undefined && item.distanciaKm !== null) {
+          const distStr = item.distanciaKm < 1 
+            ? `${Math.round(item.distanciaKm * 1000)}m` 
+            : `${item.distanciaKm.toFixed(1)} km`;
+          badgeDistancia = `
+            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+              <i data-lucide="map-pin" class="w-3 h-3"></i> a ${distStr}
+            </span>
+          `;
+        }
+
+        const todosDiasUnicos = Array.from(new Set([...almoco, ...jantar]));
+
+        return `
+          <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all space-y-4">
+            
+            <div class="flex justify-between items-start gap-2">
+              <div class="space-y-0.5">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#0070D2]">
+                  ${catNome}
+                </span>
+                <h3 class="font-extrabold text-lg text-slate-900 leading-snug">${item.nome}</h3>
+                <p class="text-xs text-slate-400 flex items-center gap-1 pt-0.5">
+                  <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                  <span class="truncate">${item.local_destaque || item.endereco?.split(',')[0] || 'Londrina - PR'}</span>
+                </p>
+              </div>
+
+              <div class="flex flex-col items-end gap-1.5 shrink-0">
+                ${ativoAgora ? `
+                  <span class="px-3 py-1 bg-[#0070D2] text-white text-[11px] font-bold rounded-full shadow-sm shadow-blue-500/20">
+                    Ativo agora
+                  </span>
+                ` : `
+                  <span class="px-2.5 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-semibold rounded-full">
+                    Outros dias
+                  </span>
+                `}
+                ${badgeDistancia}
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <h4 class="text-xl font-extrabold text-[#0070D2] tracking-tight leading-snug">
+                ${item.beneficio}
+              </h4>
+              ${item.local_destaque ? `<p class="text-xs text-slate-500 font-normal">Disponível no ${item.local_destaque}.</p>` : ''}
+            </div>
+
+            <div class="flex items-center gap-1.5 flex-wrap pt-1 text-xs">
+              ${todosDiasUnicos.map(d => `
+                <span class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${
+                  d === state.diaSelecionado || (state.diaSelecionado === 'qualquer' && d === hojeSigla)
+                    ? 'bg-blue-100 text-[#0070D2]' 
+                    : 'bg-slate-100 text-slate-600'
+                }">
+                  ${d}
+                </span>
+              `).join('')}
+
+              ${turnosTexto.length > 0 ? `
+                <span class="text-xs text-slate-400 font-medium flex items-center gap-1 ml-1.5">
+                  <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                  ${turnosTexto.join(' • ')}
+                </span>
+              ` : ''}
+            </div>
+
+            ${item.regras_excecao ? `
+              <details class="group text-xs border border-slate-100 bg-slate-50/70 rounded-2xl transition-all">
+                <summary class="flex justify-between items-center p-3 font-semibold text-slate-600 cursor-pointer select-none">
+                  <span>Ver regras do voucher</span>
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <div class="px-3 pb-3 text-slate-500 font-normal leading-relaxed text-[11px] border-t border-slate-200/50 pt-2">
+                  ${item.regras_excecao}
+                </div>
+              </details>
+            ` : ''}
+
+	<!-- Horário de Funcionamento Coletado -->
+            ${item.horario_real_detalhado && item.horario_real_detalhado !== 'Não informado' ? `
+              <div class="flex items-start gap-1.5 text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <i data-lucide="clock-3" class="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5"></i>
+                <div>
+                  <span class="font-semibold text-slate-700">Horários de funcionamento:</span>
+                  <p class="text-slate-500 leading-snug line-clamp-2">${item.horario_real_detalhado}</p>
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="flex items-center gap-2 pt-1">
+              <a 
+                href="${mapUrl}" 
+                target="_blank" 
+                class="flex-1 flex items-center justify-center gap-2 py-3 bg-[#0070D2] hover:bg-blue-600 text-white text-xs font-bold rounded-2xl shadow-sm shadow-blue-500/20 transition-all"
+              >
+                <i data-lucide="navigation-2" class="w-4 h-4"></i>
+                Traçar rota
+              </a>
+
+              <a 
+                href="${mapUrl}" 
+                target="_blank" 
+                class="flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-2xl transition-all"
+              >
+                <i data-lucide="map" class="w-4 h-4"></i>
+                Mapa
+              </a>
+
+              ${instaUrl ? `
+  <a 
+    href="${instaUrl}" 
+    target="_blank" 
+    class="flex items-center justify-center p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl transition-all"
+    title="Abrir Instagram"
+  >
+    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line>
+    </svg>
+  </a>
+` : ''}
+            </div>
+
+            <div class="text-[10px] text-slate-400 truncate">
+              ${item.endereco || 'Londrina, PR'}
+            </div>
+
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      state.search = e.target.value;
+      renderizar();
+    });
+
+    carregarDados();
+  </script>
+</body>
+</html>
